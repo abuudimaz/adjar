@@ -4,11 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administrasi Pembelajaran Al-Qur'an Hadits Kelas 5</title>
-    
-    <!-- Gunakan CDN yang lebih stabil -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.min.js"></script>
-    
     <style>
         :root {
             --primary-color: #2c3e50;
@@ -17,6 +14,7 @@
             --light-color: #ecf0f1;
             --dark-color: #2c3e50;
             --shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            --gold-color: #d4af37;
         }
 
         * {
@@ -26,7 +24,7 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Georgia', 'Times New Roman', serif;
             background: linear-gradient(135deg, #1a2a3a, #2c3e50);
             color: var(--light-color);
             min-height: 100vh;
@@ -145,24 +143,29 @@
         }
 
         .book-cover {
-            width: 350px;
-            height: 500px;
-            background: linear-gradient(135deg, #1a5276, #3498db);
+            width: 400px;
+            height: 570px;
+            background: linear-gradient(135deg, #1a5276, #2c3e50);
             border-radius: 15px;
-            box-shadow: var(--shadow);
+            box-shadow: 
+                0 20px 60px rgba(0, 0, 0, 0.5),
+                inset 0 0 0 1px rgba(255, 255, 255, 0.1),
+                inset 0 0 30px rgba(0, 0, 0, 0.3);
             display: flex;
             flex-direction: column;
-            justify-content: center;
+            justify-content: space-between;
             align-items: center;
-            padding: 40px;
+            padding: 50px 40px;
             text-align: center;
             position: relative;
             overflow: hidden;
             transition: transform 0.3s ease;
+            border: 15px solid #8B4513;
+            border-image: linear-gradient(45deg, #8B4513, #D2691E, #8B4513) 1;
         }
 
         .book-cover:hover {
-            transform: translateY(-10px);
+            transform: translateY(-10px) scale(1.02);
         }
 
         .book-cover::before {
@@ -172,32 +175,79 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/></svg>');
+            background: 
+                radial-gradient(circle at 20% 30%, rgba(212, 175, 55, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(212, 175, 55, 0.1) 0%, transparent 50%),
+                url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="none" stroke="rgba(212,175,55,0.1)" stroke-width="1"/></svg>');
             background-size: 20px 20px;
-            opacity: 0.3;
+            opacity: 0.5;
+        }
+
+        .book-spine {
+            position: absolute;
+            left: -15px;
+            top: 0;
+            width: 30px;
+            height: 100%;
+            background: linear-gradient(to right, #5D4037, #8B4513, #5D4037);
+            box-shadow: inset -5px 0 10px rgba(0, 0, 0, 0.5);
+            border-radius: 5px 0 0 5px;
+        }
+
+        .book-title-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2;
         }
 
         .book-title {
-            font-size: 1.8rem;
+            font-size: 2.2rem;
             font-weight: 700;
             line-height: 1.3;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
             color: white;
-            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            text-shadow: 0 3px 8px rgba(0, 0, 0, 0.5);
+            letter-spacing: 1px;
         }
 
         .book-subtitle {
-            font-size: 1.2rem;
-            margin-bottom: 30px;
-            opacity: 0.9;
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            color: var(--gold-color);
+            font-weight: 600;
         }
 
         .book-year {
-            font-size: 1rem;
-            background: rgba(255, 255, 255, 0.2);
-            padding: 8px 15px;
-            border-radius: 20px;
+            font-size: 1.3rem;
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.3), rgba(255, 215, 0, 0.2));
+            padding: 12px 25px;
+            border-radius: 25px;
             margin-top: 20px;
+            border: 2px solid var(--gold-color);
+            color: white;
+            font-weight: 600;
+        }
+
+        .book-author {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid rgba(212, 175, 55, 0.5);
+            width: 100%;
+        }
+
+        .author-name {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: white;
+        }
+
+        .author-nip {
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.9);
         }
 
         .flipbook-container {
@@ -268,6 +318,7 @@
             padding: 10px 15px;
             cursor: pointer;
             z-index: 100;
+            font-weight: 600;
         }
 
         .error-message {
@@ -277,6 +328,21 @@
             border-radius: 5px;
             margin: 10px 0;
             display: none;
+        }
+
+        .back-button {
+            display: none;
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: var(--secondary-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 15px;
+            cursor: pointer;
+            z-index: 100;
+            font-weight: 600;
         }
 
         @media (max-width: 1024px) {
@@ -298,34 +364,65 @@
             }
 
             .book-cover {
-                width: 300px;
-                height: 430px;
+                width: 350px;
+                height: 500px;
+                padding: 40px 30px;
             }
 
             .book-title {
-                font-size: 1.5rem;
+                font-size: 1.8rem;
+            }
+
+            .book-subtitle {
+                font-size: 1.3rem;
             }
         }
 
         @media (max-width: 768px) {
             .book-cover {
-                width: 250px;
-                height: 360px;
-                padding: 20px;
+                width: 300px;
+                height: 430px;
+                padding: 30px 20px;
+            }
+
+            .book-title {
+                font-size: 1.5rem;
+            }
+
+            .book-subtitle {
+                font-size: 1.1rem;
+            }
+
+            .book-year {
+                font-size: 1.1rem;
+                padding: 10px 20px;
+            }
+
+            .author-name {
+                font-size: 1.1rem;
+            }
+
+            .author-nip {
+                font-size: 0.9rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .book-cover {
+                width: 280px;
+                height: 400px;
+                padding: 25px 15px;
             }
 
             .book-title {
                 font-size: 1.3rem;
-            }
-
-            .book-subtitle {
-                font-size: 1rem;
             }
         }
     </style>
 </head>
 <body>
     <button class="toggle-sidebar" id="toggleSidebar">☰ Menu</button>
+    <button class="back-button" id="backButton">← Kembali ke Cover</button>
     
     <div class="container">
         <div class="sidebar" id="sidebar">
@@ -397,9 +494,17 @@
         <div class="main-content">
             <div class="cover-container" id="coverContainer">
                 <div class="book-cover">
-                    <h1 class="book-title">Administrasi Pembelajaran<br>Al-Qur'an Hadits<br>Kelas 5</h1>
-                    <div class="book-subtitle">Tahun Ajaran</div>
-                    <div class="book-year">2025/2026</div>
+                    <div class="book-spine"></div>
+                    <div class="book-title-container">
+                        <h1 class="book-title">Administrasi Pembelajaran<br>Al-Qur'an Hadits<br>Kelas 5</h1>
+                        <div class="book-subtitle">Tahun Ajaran</div>
+                        <div class="book-year">2025/2026</div>
+                    </div>
+                    <div class="book-author">
+                        <div class="author-name">Disusun Oleh:</div>
+                        <div class="author-name">MAHFUD SIDIK, S.Pd.I</div>
+                        <div class="author-nip">NIP. 197608012005011004</div>
+                    </div>
                 </div>
             </div>
             
@@ -426,6 +531,7 @@
 
         // DOM Elements
         const toggleSidebarBtn = document.getElementById('toggleSidebar');
+        const backButton = document.getElementById('backButton');
         const sidebar = document.getElementById('sidebar');
         const perencanaanTitle = document.getElementById('perencanaanTitle');
         const perencanaanItems = document.getElementById('perencanaanItems');
@@ -442,6 +548,11 @@
         // Toggle sidebar on mobile
         toggleSidebarBtn.addEventListener('click', () => {
             sidebar.classList.toggle('active');
+        });
+
+        // Back to cover button
+        backButton.addEventListener('click', () => {
+            showCover();
         });
 
         // Toggle menu sections
@@ -484,6 +595,16 @@
             }, 5000);
         }
 
+        // Function to show cover and hide flipbook
+        function showCover() {
+            coverContainer.style.display = 'flex';
+            flipbookContainer.style.display = 'none';
+            backButton.style.display = 'none';
+            
+            // Remove active class from all menu items
+            menuItems.forEach(item => item.classList.remove('active'));
+        }
+
         // Function to load and display PDF
         async function loadPDF(url) {
             if (currentPDF === url) return; // Skip if already loaded
@@ -494,9 +615,10 @@
             loadingScreen.style.display = 'flex';
             flipContainer.classList.remove('visible');
             
-            // Hide cover, show flipbook
+            // Hide cover, show flipbook and back button
             coverContainer.style.display = 'none';
             flipbookContainer.style.display = 'flex';
+            backButton.style.display = 'block';
             
             try {
                 // Render PDF to images
@@ -516,8 +638,7 @@
                 showError('Gagal memuat PDF: ' + error.message);
                 
                 // Show cover again on error
-                coverContainer.style.display = 'flex';
-                flipbookContainer.style.display = 'none';
+                showCover();
                 loadingScreen.style.display = 'none';
             }
         }
@@ -625,6 +746,10 @@
                 case ' ':
                     e.preventDefault();
                     pageFlip.flipNext();
+                    break;
+                case 'Escape':
+                    e.preventDefault();
+                    showCover();
                     break;
             }
         });
