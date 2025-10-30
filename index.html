@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administrasi Pembelajaran Al-Qur'an Hadits Kelas 5</title>
+    
+    <!-- Gunakan CDN yang lebih stabil -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.min.js"></script>
+    
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --light-color: #ecf0f1;
+            --dark-color: #2c3e50;
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a2a3a, #2c3e50);
+            color: var(--light-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        .container {
+            display: flex;
+            flex: 1;
+            height: 100vh;
+        }
+
+        .sidebar {
+            width: 300px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            overflow-y: auto;
+            transition: all 0.3s ease;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .sidebar-header {
+            margin-bottom: 30px;
+            text-align: center;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .sidebar-header h2 {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+            color: var(--light-color);
+        }
+
+        .sidebar-header p {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .menu-section {
+            margin-bottom: 20px;
+        }
+
+        .menu-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .menu-title:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .menu-title.active {
+            background: var(--secondary-color);
+        }
+
+        .menu-items {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .menu-items.show {
+            max-height: 500px;
+        }
+
+        .menu-item {
+            padding: 10px 15px 10px 25px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+        }
+
+        .menu-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .menu-item.active {
+            background: var(--secondary-color);
+            font-weight: 600;
+        }
+
+        .menu-item i {
+            margin-right: 10px;
+            font-size: 0.9rem;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            position: relative;
+        }
+
+        .cover-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            padding: 20px;
+        }
+
+        .book-cover {
+            width: 350px;
+            height: 500px;
+            background: linear-gradient(135deg, #1a5276, #3498db);
+            border-radius: 15px;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.3s ease;
+        }
+
+        .book-cover:hover {
+            transform: translateY(-10px);
+        }
+
+        .book-cover::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/></svg>');
+            background-size: 20px 20px;
+            opacity: 0.3;
+        }
+
+        .book-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            line-height: 1.3;
+            margin-bottom: 20px;
+            color: white;
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+
+        .book-subtitle {
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            opacity: 0.9;
+        }
+
+        .book-year {
+            font-size: 1rem;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 15px;
+            border-radius: 20px;
+            margin-top: 20px;
+        }
+
+        .flipbook-container {
+            display: none;
+            flex: 1;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+        }
+
+        #flipbook {
+            box-shadow: var(--shadow);
+            border-radius: 10px;
+            overflow: hidden;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        #flipbook.visible {
+            opacity: 1;
+        }
+
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--primary-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            color: white;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        .toggle-sidebar {
+            display: none;
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: var(--secondary-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 15px;
+            cursor: pointer;
+            z-index: 100;
+        }
+
+        .error-message {
+            background: #e74c3c;
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            display: none;
+        }
+
+        @media (max-width: 1024px) {
+            .sidebar {
+                position: fixed;
+                left: -300px;
+                top: 0;
+                height: 100%;
+                z-index: 99;
+                transition: left 0.3s ease;
+            }
+
+            .sidebar.active {
+                left: 0;
+            }
+
+            .toggle-sidebar {
+                display: block;
+            }
+
+            .book-cover {
+                width: 300px;
+                height: 430px;
+            }
+
+            .book-title {
+                font-size: 1.5rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .book-cover {
+                width: 250px;
+                height: 360px;
+                padding: 20px;
+            }
+
+            .book-title {
+                font-size: 1.3rem;
+            }
+
+            .book-subtitle {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="toggle-sidebar" id="toggleSidebar">☰ Menu</button>
+    
+    <div class="container">
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>Administrasi Pembelajaran</h2>
+                <p>Al-Qur'an Hadits Kelas 5</p>
+            </div>
+            
+            <div class="error-message" id="errorMessage"></div>
+            
+            <div class="menu-section">
+                <div class="menu-title" id="perencanaanTitle">
+                    <span>Perencanaan</span>
+                    <span>▼</span>
+                </div>
+                <div class="menu-items" id="perencanaanItems">
+                    <div class="menu-item" data-pdf="https://abuudimaz.github.io/files/CP.pdf">
+                        <i>📄</i> Capaian Pembelajaran
+                    </div>
+                    <div class="menu-item" data-pdf="https://abuudimaz.github.io/files/ATP.pdf">
+                        <i>📄</i> Alur Tujuan Pembelajaran
+                    </div>
+                    <div class="menu-item" data-pdf="https://abuudimaz.github.io/files/PROTA.pdf">
+                        <i>📄</i> Program Tahunan
+                    </div>
+                    <div class="menu-item" data-pdf="https://abuudimaz.github.io/files/PROMES.pdf">
+                        <i>📄</i> Program Semester
+                    </div>
+                    <div class="menu-item" data-pdf="https://abuudimaz.github.io/files/KKTP.pdf">
+                        <i>📄</i> Kriteria Ketercapaian
+                    </div>
+                </div>
+            </div>
+            
+            <div class="menu-section">
+                <div class="menu-title" id="modulTitle">
+                    <span>Modul Ajar</span>
+                    <span>▼</span>
+                </div>
+                <div class="menu-items" id="modulItems">
+                    <div class="menu-item" data-pdf="https://abuudimaz.github.io/files/BAB%201.pdf">
+                        <i>📚</i> Bab 1
+                    </div>
+                    <div class="menu-item" data-pdf="https://abuudimaz.github.io/files/BAB%202.pdf">
+                        <i>📚</i> Bab 2
+                    </div>
+                    <div class="menu-item" data-pdf="https://abuudimaz.github.io/files/BAB%203.pdf">
+                        <i>📚</i> Bab 3
+                    </div>
+                    <div class="menu-item" data-pdf="https://abuudimaz.github.io/files/BAB%204.pdf">
+                        <i>📚</i> Bab 4
+                    </div>
+                    <div class="menu-item" data-pdf="https://abuudimaz.github.io/files/BAB%205.pdf">
+                        <i>📚</i> Bab 5
+                    </div>
+                    <div class="menu-item" data-pdf="https://abuudimaz.github.io/files/BAB%206.pdf">
+                        <i>📚</i> Bab 6
+                    </div>
+                    <div class="menu-item" data-pdf="https://abuudimaz.github.io/files/BAB%207.pdf">
+                        <i>📚</i> Bab 7
+                    </div>
+                    <div class="menu-item" data-pdf="https://abuudimaz.github.io/files/BAB%208.pdf">
+                        <i>📚</i> Bab 8
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="cover-container" id="coverContainer">
+                <div class="book-cover">
+                    <h1 class="book-title">Administrasi Pembelajaran<br>Al-Qur'an Hadits<br>Kelas 5</h1>
+                    <div class="book-subtitle">Tahun Ajaran</div>
+                    <div class="book-year">2025/2026</div>
+                </div>
+            </div>
+            
+            <div class="flipbook-container" id="flipbookContainer">
+                <div id="flipbook"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="loading-screen" id="loadingScreen">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Memuat PDF...</div>
+        <div id="loadingProgress">Menginisialisasi...</div>
+    </div>
+
+    <script>
+        // Inisialisasi PDF.js dengan konfigurasi yang benar
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        // Inisialisasi variabel global
+        let pageFlip = null;
+        let fitHeightMode = true;
+        let currentPDF = null;
+
+        // DOM Elements
+        const toggleSidebarBtn = document.getElementById('toggleSidebar');
+        const sidebar = document.getElementById('sidebar');
+        const perencanaanTitle = document.getElementById('perencanaanTitle');
+        const perencanaanItems = document.getElementById('perencanaanItems');
+        const modulTitle = document.getElementById('modulTitle');
+        const modulItems = document.getElementById('modulItems');
+        const menuItems = document.querySelectorAll('.menu-item');
+        const coverContainer = document.getElementById('coverContainer');
+        const flipbookContainer = document.getElementById('flipbookContainer');
+        const flipContainer = document.getElementById('flipbook');
+        const loadingScreen = document.getElementById('loadingScreen');
+        const loadingProgress = document.getElementById('loadingProgress');
+        const errorMessage = document.getElementById('errorMessage');
+
+        // Toggle sidebar on mobile
+        toggleSidebarBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('active');
+        });
+
+        // Toggle menu sections
+        perencanaanTitle.addEventListener('click', () => {
+            perencanaanItems.classList.toggle('show');
+            perencanaanTitle.classList.toggle('active');
+        });
+
+        modulTitle.addEventListener('click', () => {
+            modulItems.classList.toggle('show');
+            modulTitle.classList.toggle('active');
+        });
+
+        // Handle menu item clicks
+        menuItems.forEach(item => {
+            item.addEventListener('click', function() {
+                // Remove active class from all items
+                menuItems.forEach(i => i.classList.remove('active'));
+                
+                // Add active class to clicked item
+                this.classList.add('active');
+                
+                // Load the PDF
+                const pdfUrl = this.getAttribute('data-pdf');
+                loadPDF(pdfUrl);
+                
+                // Close sidebar on mobile after selection
+                if (window.innerWidth <= 1024) {
+                    sidebar.classList.remove('active');
+                }
+            });
+        });
+
+        // Function to show error message
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+            setTimeout(() => {
+                errorMessage.style.display = 'none';
+            }, 5000);
+        }
+
+        // Function to load and display PDF
+        async function loadPDF(url) {
+            if (currentPDF === url) return; // Skip if already loaded
+            
+            currentPDF = url;
+            
+            // Show loading screen
+            loadingScreen.style.display = 'flex';
+            flipContainer.classList.remove('visible');
+            
+            // Hide cover, show flipbook
+            coverContainer.style.display = 'none';
+            flipbookContainer.style.display = 'flex';
+            
+            try {
+                // Render PDF to images
+                const images = await renderPdfToImages(url);
+                
+                // Initialize flipbook with images
+                initFlipbook(images);
+                
+                // Hide loading screen after a short delay
+                setTimeout(() => {
+                    loadingScreen.style.display = 'none';
+                    flipContainer.classList.add('visible');
+                }, 600);
+            } catch (error) {
+                console.error('Error loading PDF:', error);
+                loadingProgress.textContent = 'Error: Gagal memuat PDF';
+                showError('Gagal memuat PDF: ' + error.message);
+                
+                // Show cover again on error
+                coverContainer.style.display = 'flex';
+                flipbookContainer.style.display = 'none';
+                loadingScreen.style.display = 'none';
+            }
+        }
+
+        // Function to render PDF pages to images
+        async function renderPdfToImages(url) {
+            loadingProgress.textContent = 'Mengunduh PDF...';
+            
+            try {
+                const pdf = await pdfjsLib.getDocument({
+                    url: url,
+                    cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
+                    cMapPacked: true,
+                }).promise;
+                
+                const numPages = pdf.numPages;
+                const images = [];
+                const targetHeight = fitHeightMode ? Math.floor(window.innerHeight * 0.95) : Math.floor(window.innerWidth / 1.4);
+
+                for (let i = 1; i <= numPages; i++) {
+                    loadingProgress.textContent = `Merender halaman ${i} dari ${numPages}...`;
+                    
+                    const page = await pdf.getPage(i);
+                    const viewport = page.getViewport({ scale: 1 });
+                    
+                    // Calculate scale for target height
+                    const scale = targetHeight / viewport.height;
+                    const scaledViewport = page.getViewport({ scale });
+                    
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    canvas.height = scaledViewport.height;
+                    canvas.width = scaledViewport.width;
+
+                    await page.render({
+                        canvasContext: context,
+                        viewport: scaledViewport
+                    }).promise;
+
+                    images.push(canvas.toDataURL('image/jpeg', 0.95));
+                }
+
+                return images;
+            } catch (error) {
+                console.error('Error rendering PDF:', error);
+                throw new Error('Tidak dapat merender PDF. Pastikan file PDF tersedia dan dapat diakses.');
+            }
+        }
+
+        // Function to initialize the flipbook
+        function initFlipbook(images) {
+            const fitHeight = fitHeightMode ? Math.floor(window.innerHeight * 0.95) : Math.floor(window.innerWidth / 1.4);
+            const baseHeight = fitHeight;
+            const baseWidth = baseHeight * 0.707;
+
+            // Destroy existing flipbook if any
+            if (pageFlip) {
+                try {
+                    pageFlip.destroy();
+                } catch (e) {
+                    console.warn('Error destroying previous flipbook:', e);
+                }
+            }
+
+            // Clear flipbook container
+            flipContainer.innerHTML = '';
+
+            // Create new flipbook
+            try {
+                pageFlip = new St.PageFlip(flipContainer, {
+                    width: Math.floor(baseWidth),
+                    height: Math.floor(baseHeight),
+                    size: 'fixed',
+                    showCover: true,
+                    autoSize: true,
+                    minWidth: 315,
+                    maxWidth: 3000,
+                    minHeight: 400,
+                    maxHeight: 3000,
+                    maxShadowOpacity: 0.6,
+                    mobileScrollSupport: true,
+                    flippingTime: 700,
+                    showPageCorners: true,
+                    swipeDistance: 30,
+                });
+
+                pageFlip.loadFromImages(images);
+                pageFlip.turnToPage(0);
+            } catch (error) {
+                console.error('Error initializing flipbook:', error);
+                throw new Error('Gagal membuat flipbook. Pastikan browser mendukung WebGL.');
+            }
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (!pageFlip) return;
+            
+            switch(e.key) {
+                case 'ArrowLeft':
+                    e.preventDefault();
+                    pageFlip.flipPrev();
+                    break;
+                case 'ArrowRight':
+                case ' ':
+                    e.preventDefault();
+                    pageFlip.flipNext();
+                    break;
+            }
+        });
+
+        // Handle window resize
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                if (pageFlip && currentPDF) {
+                    // Reinitialize flipbook with new dimensions
+                    loadPDF(currentPDF);
+                }
+            }, 250);
+        });
+
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', () => {
+            // Auto-expand first menu section
+            perencanaanItems.classList.add('show');
+            perencanaanTitle.classList.add('active');
+            
+            // Hide loading screen if it's still visible
+            setTimeout(() => {
+                loadingScreen.style.display = 'none';
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
