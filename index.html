@@ -279,6 +279,7 @@
             justify-content: center;
             width: 100%;
             height: 100%;
+            position: relative;
         }
 
         #flipbook {
@@ -287,6 +288,7 @@
             overflow: hidden;
             opacity: 0;
             transition: opacity 0.3s ease;
+            background: white;
         }
 
         #flipbook.visible {
@@ -365,6 +367,19 @@
             cursor: pointer;
             z-index: 100;
             font-weight: 600;
+        }
+
+        .pdf-status {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            display: none;
         }
 
         @media (max-width: 1024px) {
@@ -545,6 +560,7 @@
             
             <div class="flipbook-container" id="flipbookContainer">
                 <div id="flipbook"></div>
+                <div class="pdf-status" id="pdfStatus">Memuat PDF...</div>
             </div>
         </div>
     </div>
@@ -564,6 +580,7 @@
         let fitHeightMode = true;
         let currentPDF = null;
         let currentPDFDocument = null;
+        let isLoading = false;
 
         // DOM Elements
         const toggleSidebarBtn = document.getElementById('toggleSidebar');
@@ -580,6 +597,7 @@
         const loadingScreen = document.getElementById('loadingScreen');
         const loadingProgress = document.getElementById('loadingProgress');
         const errorMessage = document.getElementById('errorMessage');
+        const pdfStatus = document.getElementById('pdfStatus');
 
         // Toggle sidebar on mobile
         toggleSidebarBtn.addEventListener('click', () => {
@@ -605,6 +623,8 @@
         // Handle menu item clicks
         menuItems.forEach(item => {
             item.addEventListener('click', function() {
+                if (isLoading) return; // Prevent multiple clicks
+                
                 // Remove active class from all items
                 menuItems.forEach(i => i.classList.remove('active'));
                 
@@ -636,11 +656,17 @@
             coverContainer.style.display = 'flex';
             flipbookContainer.style.display = 'none';
             backButton.style.display = 'none';
+            pdfStatus.style.display = 'none';
             
             // Remove active class from all menu items
             menuItems.forEach(item => item.classList.remove('active'));
             
             // Clean up PDF document to free memory
+            cleanupPDF();
+        }
+
+        // Function to cleanup PDF resources
+        function cleanupPDF() {
             if (currentPDFDocument) {
                 try {
                     currentPDFDocument.destroy();
@@ -649,14 +675,30 @@
                     console.log('Error cleaning up PDF document:', e);
                 }
             }
+            
+            // Clear any cached images
+            if (flipContainer) {
+                flipContainer.innerHTML = '';
+            }
+            
+            // Force garbage collection
+            if (window.gc) {
+                window.gc();
+            }
         }
 
         // Function to load and display PDF
         async function loadPDF(url) {
+            if (isLoading) return;
+            
+            isLoading = true;
+            
             // Show loading screen
             loadingScreen.style.display = 'flex';
             flipContainer.classList.remove('visible');
             loadingProgress.textContent = 'Menginisialisasi...';
+            pdfStatus.style.display = 'block';
+            pdfStatus.textContent = 'Memulai pembukaan PDF...';
             
             // Hide cover, show flipbook and back button
             coverContainer.style.display = 'none';
@@ -664,38 +706,44 @@
             backButton.style.display = 'block';
             
             try {
-                // Clean up previous PDF document if exists
-                if (currentPDFDocument && currentPDF !== url) {
-                    try {
-                        currentPDFDocument.destroy();
-                    } catch (e) {
-                        console.log('Error destroying previous PDF:', e);
-                    }
-                    currentPDFDocument = null;
-                }
+                // Clean up previous PDF document
+                cleanupPDF();
                 
                 currentPDF = url;
+                pdfStatus.textContent = 'Mengunduh PDF...';
                 
-                // Render PDF to images
+                // Render PDF to images with better error handling
                 const images = await renderPdfToImages(url);
                 
+                if (images.length === 0) {
+                    throw new Error('Tidak ada halaman yang berhasil dirender');
+                }
+                
+                pdfStatus.textContent = 'Membuat flipbook...';
+                
                 // Initialize flipbook with images
-                initFlipbook(images);
+                await initFlipbook(images);
+                
+                pdfStatus.textContent = `PDF berhasil dimuat (${images.length} halaman)`;
                 
                 // Hide loading screen after a short delay
                 setTimeout(() => {
                     loadingScreen.style.display = 'none';
                     flipContainer.classList.add('visible');
-                loadingProgress.textContent = 'Menginisialisasi...';
-                }, 600);
+                    loadingProgress.textContent = 'Menginisialisasi...';
+                    isLoading = false;
+                }, 800);
+                
             } catch (error) {
                 console.error('Error loading PDF:', error);
                 loadingProgress.textContent = 'Error: Gagal memuat PDF';
+                pdfStatus.textContent = 'Error: Gagal memuat PDF';
                 showError('Gagal memuat PDF: ' + error.message);
                 
                 // Show cover again on error
                 showCover();
                 loadingScreen.style.display = 'none';
+                isLoading = false;
             }
         }
 
@@ -704,53 +752,45 @@
             loadingProgress.textContent = 'Mengunduh PDF...';
             
             try {
-                // Clear any cached PDF
-                pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-                
+                // Use fresh PDF.js instance
                 const loadingTask = pdfjsLib.getDocument({
                     url: url,
                     cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
                     cMapPacked: true,
                     disableAutoFetch: false,
-                    disableStream: false
+                    disableStream: false,
+                    enableXfa: true
                 });
                 
                 currentPDFDocument = await loadingTask.promise;
                 const numPages = currentPDFDocument.numPages;
                 const images = [];
-                const targetHeight = fitHeightMode ? Math.floor(window.innerHeight * 0.85) : Math.floor(window.innerWidth / 1.5);
+                const targetHeight = Math.min(Math.floor(window.innerHeight * 0.8), 800);
+
+                console.log(`Rendering ${numPages} pages for PDF: ${url}`);
 
                 for (let i = 1; i <= numPages; i++) {
                     loadingProgress.textContent = `Merender halaman ${i} dari ${numPages}...`;
+                    pdfStatus.textContent = `Merender halaman ${i}/${numPages}`;
                     
                     const page = await currentPDFDocument.getPage(i);
-                    const viewport = page.getViewport({ scale: 1 });
+                    const viewport = page.getViewport({ scale: 1.0 });
                     
-                    // Calculate scale for target height with better precision
-                    const scale = Math.min(targetHeight / viewport.height, (window.innerWidth * 0.8) / viewport.width);
+                    // Calculate scale for target height
+                    const scale = targetHeight / viewport.height;
                     const scaledViewport = page.getViewport({ scale: scale });
                     
                     // Create canvas with proper dimensions
                     const canvas = document.createElement('canvas');
                     const context = canvas.getContext('2d', { alpha: false });
                     
-                    // Set higher DPI for better quality
-                    const dpi = 150;
-                    const scaleFactor = dpi / 96;
+                    // Set canvas dimensions
+                    canvas.width = Math.floor(scaledViewport.width);
+                    canvas.height = Math.floor(scaledViewport.height);
                     
-                    canvas.width = Math.floor(scaledViewport.width * scaleFactor);
-                    canvas.height = Math.floor(scaledViewport.height * scaleFactor);
-                    canvas.style.width = scaledViewport.width + 'px';
-                    canvas.style.height = scaledViewport.height + 'px';
-                    
-                    // Clear canvas completely before rendering
-                    context.save();
-                    context.setTransform(1, 0, 0, 1, 0, 0);
-                    context.clearRect(0, 0, canvas.width, canvas.height);
-                    context.restore();
-                    
-                    // Apply scale for high DPI
-                    context.scale(scaleFactor, scaleFactor);
+                    // Clear canvas completely
+                    context.fillStyle = 'white';
+                    context.fillRect(0, 0, canvas.width, canvas.height);
                     
                     const renderContext = {
                         canvasContext: context,
@@ -758,77 +798,93 @@
                         background: 'white'
                     };
                     
+                    // Render page with timeout
                     await page.render(renderContext).promise;
                     
-                    // Convert to data URL with better quality
-                    const imageData = canvas.toDataURL('image/jpeg', 0.9);
+                    // Convert to data URL
+                    const imageData = canvas.toDataURL('image/jpeg', 0.85);
                     images.push(imageData);
                     
-                    // Clean up page
+                    // Clean up
                     page.cleanup();
+                    
+                    // Small delay to prevent blocking
+                    if (i % 3 === 0) {
+                        await new Promise(resolve => setTimeout(resolve, 50));
+                    }
                 }
 
+                console.log(`Successfully rendered ${images.length} images`);
                 return images;
+                
             } catch (error) {
                 console.error('Error rendering PDF:', error);
-                throw new Error('Tidak dapat merender PDF. Pastikan file PDF tersedia dan dapat diakses.');
+                throw new Error(`Tidak dapat merender PDF: ${error.message}`);
             }
         }
 
         // Function to initialize the flipbook
         function initFlipbook(images) {
-            const fitHeight = fitHeightMode ? Math.floor(window.innerHeight * 0.85) : Math.floor(window.innerWidth / 1.5);
-            const baseHeight = fitHeight;
-            const baseWidth = baseHeight * 0.707;
-
-            // Destroy existing flipbook if any
-            if (pageFlip) {
+            return new Promise((resolve, reject) => {
                 try {
-                    pageFlip.destroy();
-                } catch (e) {
-                    console.warn('Error destroying previous flipbook:', e);
+                    const baseHeight = Math.min(Math.floor(window.innerHeight * 0.8), 800);
+                    const baseWidth = baseHeight * 0.707;
+
+                    // Destroy existing flipbook if any
+                    if (pageFlip) {
+                        try {
+                            pageFlip.destroy();
+                        } catch (e) {
+                            console.warn('Error destroying previous flipbook:', e);
+                        }
+                    }
+
+                    // Clear flipbook container completely
+                    flipContainer.innerHTML = '';
+                    flipContainer.style.width = Math.floor(baseWidth) + 'px';
+                    flipContainer.style.height = Math.floor(baseHeight) + 'px';
+
+                    // Create new flipbook
+                    pageFlip = new St.PageFlip(flipContainer, {
+                        width: Math.floor(baseWidth),
+                        height: Math.floor(baseHeight),
+                        size: 'fixed',
+                        showCover: true,
+                        autoSize: false,
+                        minWidth: 300,
+                        maxWidth: 1200,
+                        minHeight: 400,
+                        maxHeight: 1600,
+                        maxShadowOpacity: 0.5,
+                        mobileScrollSupport: true,
+                        flippingTime: 600,
+                        showPageCorners: true,
+                        swipeDistance: 30,
+                        useMouseEvents: true,
+                        drawShadow: true
+                    });
+
+                    // Load images
+                    pageFlip.loadFromImages(images);
+                    
+                    // Set up event listeners
+                    pageFlip.on('flip', (e) => {
+                        const currentPage = e.data + 1;
+                        pdfStatus.textContent = `Halaman ${currentPage} dari ${images.length}`;
+                    });
+                    
+                    pageFlip.on('init', () => {
+                        console.log('Flipbook initialized successfully');
+                        resolve();
+                    });
+                    
+                    pageFlip.turnToPage(0);
+                    
+                } catch (error) {
+                    console.error('Error initializing flipbook:', error);
+                    reject(new Error('Gagal membuat flipbook: ' + error.message));
                 }
-            }
-
-            // Clear flipbook container completely
-            flipContainer.innerHTML = '';
-            flipContainer.style.width = Math.floor(baseWidth) + 'px';
-            flipContainer.style.height = Math.floor(baseHeight) + 'px';
-
-            // Create new flipbook
-            try {
-                pageFlip = new St.PageFlip(flipContainer, {
-                    width: Math.floor(baseWidth),
-                    height: Math.floor(baseHeight),
-                    size: 'fixed',
-                    showCover: true,
-                    autoSize: false,
-                    minWidth: 315,
-                    maxWidth: 2000,
-                    minHeight: 400,
-                    maxHeight: 2000,
-                    maxShadowOpacity: 0.6,
-                    mobileScrollSupport: true,
-                    flippingTime: 700,
-                    showPageCorners: true,
-                    swipeDistance: 30,
-                    useMouseEvents: true,
-                    drawShadow: true
-                });
-
-                // Load images and set up event listeners
-                pageFlip.loadFromImages(images);
-                
-                pageFlip.on('flip', (e) => {
-                    console.log('Current page:', e.data + 1);
-                });
-                
-                pageFlip.turnToPage(0);
-                
-            } catch (error) {
-                console.error('Error initializing flipbook:', error);
-                throw new Error('Gagal membuat flipbook. Pastikan browser mendukung WebGL.');
-            }
+            });
         }
 
         // Keyboard navigation
@@ -857,11 +913,11 @@
         window.addEventListener('resize', () => {
             clearTimeout(resizeTimeout);
             resizeTimeout = setTimeout(() => {
-                if (pageFlip && currentPDF) {
-                    // Reinitialize flipbook with new dimensions
+                if (pageFlip && currentPDF && !isLoading) {
+                    console.log('Window resized, reloading PDF...');
                     loadPDF(currentPDF);
                 }
-            }, 250);
+            }, 500);
         });
 
         // Initialize the page
@@ -874,6 +930,8 @@
             setTimeout(() => {
                 loadingScreen.style.display = 'none';
             }, 1000);
+            
+            console.log('PDF Flipbook Viewer initialized');
         });
     </script>
 </body>
